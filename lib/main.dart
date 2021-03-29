@@ -208,25 +208,39 @@ class _BottomNavigationBarWidgetState extends State<BottomNavigationBarWidget> {
   }
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
+  @override
+  _MyAppState createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
   final _beamerKey = GlobalKey<BeamerState>();
+
+  final Future<String> _calculation = Future<String>.delayed(
+    const Duration(seconds: 2),
+    () => 'Data Loaded',
+  );
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(
-      routeInformationParser: BeamerRouteInformationParser(),
-      routerDelegate: RootRouterDelegate(
-        homeBuilder: (context, uri) => Scaffold(
-          body: Beamer(
-            key: _beamerKey,
-            beamLocations: _beamLocations,
-          ),
-          bottomNavigationBar: BottomNavigationBarWidget(
-            beamerKey: _beamerKey,
-          ),
-        ),
-      ),
-    );
+    return FutureBuilder<String>(
+        future: _calculation,
+        builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
+          return MaterialApp.router(
+            routeInformationParser: BeamerRouteInformationParser(),
+            routerDelegate: RootRouterDelegate(
+              homeBuilder: (context, uri) => Scaffold(
+                body: Beamer(
+                  key: _beamerKey,
+                  beamLocations: _beamLocations,
+                ),
+                bottomNavigationBar: BottomNavigationBarWidget(
+                  beamerKey: _beamerKey,
+                ),
+              ),
+            ),
+          );
+        });
   }
 }
 
