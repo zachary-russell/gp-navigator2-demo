@@ -1,113 +1,235 @@
+import 'package:beamer/beamer.dart';
 import 'package:flutter/material.dart';
 
-void main() {
-  runApp(MyApp());
+// DATA
+const List<Map<String, String>> books = [
+  {
+    'id': '1',
+    'title': 'Stranger in a Strange Land',
+    'author': 'Robert A. Heinlein',
+  },
+  {
+    'id': '2',
+    'title': 'Foundation',
+    'author': 'Isaac Asimov',
+  },
+  {
+    'id': '3',
+    'title': 'Fahrenheit 451',
+    'author': 'Ray Bradbury',
+  },
+];
+
+const List<Map<String, String>> articles = [
+  {
+    'id': '1',
+    'title': 'Article 1',
+    'author': 'Author 1',
+  },
+  {
+    'id': '2',
+    'title': 'Article 2',
+    'author': 'Author 2',
+  },
+];
+
+// SCREENS
+class BooksScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Books'),
+      ),
+      body: ListView(
+        children: books
+            .map((book) => ListTile(
+                  title: Text(book['title']),
+                  subtitle: Text(book['author']),
+                  onTap: () => context.currentBeamLocation.update(
+                    (state) => state.copyWith(
+                      pathBlueprintSegments: ['books', ':bookId'],
+                      pathParameters: {'bookId': book['id']},
+                    ),
+                  ),
+                ))
+            .toList(),
+      ),
+    );
+  }
+}
+
+class BookDetailsScreen extends StatelessWidget {
+  BookDetailsScreen({
+    this.bookId,
+  }) : book = books.firstWhere((book) => book['id'] == bookId);
+
+  final String bookId;
+  final Map<String, String> book;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('Book: ${book['title']}')),
+      body: Text('Author: ${book['author']}'),
+    );
+  }
+}
+
+class ArticlesScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('Articles')),
+      body: ListView(
+        children: articles
+            .map((article) => ListTile(
+                  title: Text(article['title']),
+                  subtitle: Text(article['author']),
+                  onTap: () => context.currentBeamLocation.update(
+                    (state) => state.copyWith(
+                      pathBlueprintSegments: ['articles', ':articleId'],
+                      pathParameters: {'articleId': article['id']},
+                    ),
+                  ),
+                ))
+            .toList(),
+      ),
+    );
+  }
+}
+
+class ArticleDetailsScreen extends StatelessWidget {
+  ArticleDetailsScreen({
+    this.articleId,
+  }) : article = articles.firstWhere((article) => article['id'] == articleId);
+
+  final String articleId;
+  final Map<String, String> article;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('Article: ${article['title']}')),
+      body: Text('Author: ${article['author']}'),
+    );
+  }
+}
+
+// LOCATIONS
+class BooksLocation extends BeamLocation {
+  @override
+  List<String> get pathBlueprints => ['/books/:bookId'];
+
+  @override
+  List<BeamPage> pagesBuilder(BuildContext context) => [
+        BeamPage(
+          key: ValueKey('books'),
+          child: BooksScreen(),
+        ),
+        if (state.pathParameters.containsKey('bookId'))
+          BeamPage(
+            key: ValueKey('book-${state.pathParameters['bookId']}'),
+            child: BookDetailsScreen(
+              bookId: state.pathParameters['bookId'],
+            ),
+          ),
+      ];
+}
+
+class ArticlesLocation extends BeamLocation {
+  @override
+  List<String> get pathBlueprints => ['/articles/:articleId'];
+
+  @override
+  List<BeamPage> pagesBuilder(BuildContext context) => [
+        BeamPage(
+          key: ValueKey('articles'),
+          child: ArticlesScreen(),
+        ),
+        if (state.pathParameters.containsKey('articleId'))
+          BeamPage(
+            key: ValueKey('articles-${state.pathParameters['articleId']}'),
+            child: ArticleDetailsScreen(
+              articleId: state.pathParameters['articleId'],
+            ),
+          ),
+      ];
+}
+
+// APP
+final List<BeamLocation> _beamLocations = [
+  BooksLocation(),
+  ArticlesLocation(),
+];
+
+class BottomNavigationBarWidget extends StatefulWidget {
+  BottomNavigationBarWidget({this.beamerKey});
+
+  final GlobalKey<BeamerState> beamerKey;
+
+  @override
+  _BottomNavigationBarWidgetState createState() =>
+      _BottomNavigationBarWidgetState();
+}
+
+class _BottomNavigationBarWidgetState extends State<BottomNavigationBarWidget> {
+  int _currentIndex = 0;
+
+  @override
+  void initState() {
+    widget.beamerKey.currentState.routerDelegate
+        .addListener(() => _updateCurrentIndex());
+    super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BottomNavigationBar(
+        currentIndex: _currentIndex,
+        items: [
+          BottomNavigationBarItem(label: 'Books', icon: Icon(Icons.book)),
+          BottomNavigationBarItem(label: 'Articles', icon: Icon(Icons.article)),
+        ],
+        onTap: (index) {
+          widget.beamerKey.currentState.routerDelegate
+              .beamTo(_beamLocations[index]);
+        });
+  }
+
+  void _updateCurrentIndex() {
+    final index =
+        (widget.beamerKey.currentState.currentLocation is BooksLocation)
+            ? 0
+            : 1;
+    if (index != _currentIndex) {
+      setState(() => _currentIndex = index);
+    }
+  }
 }
 
 class MyApp extends StatelessWidget {
-  // This widget is the root of your application.
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // Try running your application with "flutter run". You'll see the
-        // application has a blue toolbar. Then, without quitting the app, try
-        // changing the primarySwatch below to Colors.green and then invoke
-        // "hot reload" (press "r" in the console where you ran "flutter run",
-        // or simply save your changes to "hot reload" in a Flutter IDE).
-        // Notice that the counter didn't reset back to zero; the application
-        // is not restarted.
-        primarySwatch: Colors.blue,
-      ),
-      home: MyHomePage(title: 'Flutter Demo Home Page'),
-    );
-  }
-}
-
-class MyHomePage extends StatefulWidget {
-  MyHomePage({Key key, this.title}) : super(key: key);
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
-
-  @override
-  _MyHomePageState createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }
+  final _beamerKey = GlobalKey<BeamerState>();
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    return Scaffold(
-      appBar: AppBar(
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Invoke "debug painting" (press "p" in the console, choose the
-          // "Toggle Debug Paint" action from the Flutter Inspector in Android
-          // Studio, or the "Toggle Debug Paint" command in Visual Studio Code)
-          // to see the wireframe for each widget.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headline4,
-            ),
-          ],
+    return MaterialApp.router(
+      routeInformationParser: BeamerRouteInformationParser(),
+      routerDelegate: RootRouterDelegate(
+        homeBuilder: (context, uri) => Scaffold(
+          body: Beamer(
+            key: _beamerKey,
+            beamLocations: _beamLocations,
+          ),
+          bottomNavigationBar: BottomNavigationBarWidget(
+            beamerKey: _beamerKey,
+          ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
+}
+
+void main() {
+  runApp(MyApp());
 }
